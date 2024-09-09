@@ -1,0 +1,72 @@
+--TASK 1--
+--Selecting the columns
+SELECT 
+    id,
+	--Replacing missing locations with unknown
+    COALESCE(location,'Unknown') AS location,
+	--Replacing rooms outside of the range with 100
+    CASE WHEN total_rooms BETWEEN 1 AND 400 THEN total_rooms
+        ELSE 100
+    	END AS total_rooms,
+	--Replacing unknown staff counts with 1.5 x room number
+    CASE WHEN staff_count IS NOT NULL THEN staff_count
+        ELSE total_rooms * 1.5
+    	END AS staff_count,
+    CASE
+	--Replacing unknown or dates outside of the range with 2023
+        WHEN opening_date = '-' THEN '2023'
+        WHEN opening_date BETWEEN '2000' AND '2023' THEN opening_date
+        ELSE '2023'
+    	END AS opening_date,
+    CASE
+	--Replacing unknown guest type with leisure and correcting business capitalisation
+        WHEN target_guests IS NULL THEN 'Leisure'
+        WHEN LOWER(target_guests) LIKE 'b%' THEN 'Business'
+        ELSE target_guests END AS target_guests
+FROM branch;
+
+
+--TASK 2--
+--Select required columns
+SELECT 
+	service_id,
+	branch_id,
+	--Rounding/averaging the time taken
+	ROUND(AVG(time_taken), 2) AS avg_time_taken,
+	--Rounding and identifying the max time taken
+	ROUND(MAX(time_taken), 2) AS max_time_taken
+FROM request 
+--Grouping by the branch and service
+GROUP BY branch_id, service_id;
+
+--TASK 3--
+--Select required columns from requests
+SELECT
+	s.description,
+	b.id,
+	b.location,
+	r.id AS request_id,
+	r.rating
+FROM request AS r
+--Joining branch/service tables to collate onto one view
+JOIN branch AS b
+	ON b.id = r.branch_id
+JOIN service AS s
+	ON s.id = r.service_id
+--Specifying which services/regions
+WHERE s.description IN ('Meal', 'Laundry')
+	AND b.location IN ('EMEA', 'LATAM')
+
+
+--TASK 4--
+--Selecting required columns
+SELECT
+	service_id,
+	branch_id,
+	--Rounding the average rating
+	ROUND(AVG(rating), 2) AS avg_rating
+FROM request
+--Grouping by the service and the branch (to obtain an average rating)
+GROUP BY service_id, branch_id
+--Specifying the service/branch with an average rating less than 4.5
+HAVING ROUND(AVG(rating), 2) < 4.5;
